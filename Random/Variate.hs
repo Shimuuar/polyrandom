@@ -131,9 +131,9 @@ instance Uniform01 Double where
 wordToDouble :: Word64 -> Double
 wordToDouble w    = (fromIntegral u * m_inv_32 + (0.5 + m_inv_53) +
                      fromIntegral (v .&. 0xFFFFF) * m_inv_52)
-    where m_inv_52 = 2.220446049250313080847263336181640625e-16
-          m_inv_53 = 1.1102230246251565404236316680908203125e-16
-          m_inv_32 = 2.3283064365386962890625e-10
+    where m_inv_52 = 2.220446049250313080847263336181640625e-16  -- 2^{-52} 
+          m_inv_53 = 1.1102230246251565404236316680908203125e-16 -- 2^{-53}
+          m_inv_32 = 2.3283064365386962890625e-10                -- 2^{-32}
           u        = fromIntegral w               :: Int32
           v        = fromIntegral (w `shiftR` 32) :: Int32
 {-# INLINE wordToDouble #-}
