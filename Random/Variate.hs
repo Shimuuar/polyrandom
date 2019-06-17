@@ -1,5 +1,12 @@
 -- |
-module Random.Variate where
+module Random.Variate (
+    -- * Type classes
+    Uniform(..)
+  , UniformR(..)
+  , Uniform01(..)
+    -- * References
+    -- $references
+  ) where
 
 import Data.Bits
 import Data.Word
@@ -138,3 +145,12 @@ wordToFloat x      = (fromIntegral i * m_inv_32) + 0.5 + m_inv_33
           m_inv_32 = 2.3283064365386962890625e-10
           i        = fromIntegral x :: Int32
 {-# INLINE wordToFloat #-}
+
+
+
+-- $references
+--
+-- * Doornik, J.A. (2007) Conversion of high-period random numbers to
+--   floating point.
+--   /ACM Transactions on Modeling and Computer Simulation/ 17(1).
+--   <http://www.doornik.com/research/randomdouble.pdf>
