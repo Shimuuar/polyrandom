@@ -10,13 +10,28 @@ import Random.Class
 -- Type classes
 ----------------------------------------------------------------
 
--- | 
-class UniformRange a where
-  uniformR :: MonadRandom m => (a,a) -> m a
-
--- | 
+-- | Generate uniformly distributed value. In other words every
+--   inhabitant of data type will be generated with equal probability.
+--
+--   Note that neither @Uniform@ nor @UniformR@ could be superclass of
+--   each other. For example 'Integer' could be instance of @UniformR@
+--   but not @Uniform@ and @(Word,Word)@ is other way around.
 class Uniform a where
   uniform :: MonadRandom m => m a
+
+-- | Generate value in range
+class UniformR a where
+  uniformR :: MonadRandom m => (a,a) -> m a
+
+
+-- | Sample numbers uniformly in interval (0,1).
+class Uniform01 a where
+  -- | Generate random number in range (0,1]. Thus it's safe to use in
+  --   computation where non-zero values are required, e.g. logarithm
+  --   of value
+  uniform01 :: m a
+  -- | Generate random number in range [0,1).
+  uniform01Z :: m a
 
 ----------------------------------------------------------------
 -- Uniform instances
@@ -31,7 +46,7 @@ instance Uniform Word16 where
   uniform = do
     n <- uniformWord32
     return $! fromIntegral n
-    
+
 instance Uniform Word32 where
   uniform = uniformWord32
 
@@ -54,7 +69,7 @@ instance Uniform Int16 where
   uniform = do
     n <- uniformWord32
     return $! fromIntegral n
-    
+
 instance Uniform Int32 where
   uniform = do
     n <- uniformWord32
