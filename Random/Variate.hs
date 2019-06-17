@@ -1,6 +1,7 @@
 -- |
 module Random.Variate where
 
+import Data.Bits
 import Data.Word
 import Data.Int
 
@@ -29,9 +30,9 @@ class Uniform01 a where
   -- | Generate random number in range (0,1]. Thus it's safe to use in
   --   computation where non-zero values are required, e.g. logarithm
   --   of value
-  uniform01 :: m a
+  uniform01  :: MonadRandom m => m a
   -- | Generate random number in range [0,1).
-  uniform01Z :: m a
+  uniform01Z :: MonadRandom m => m a
 
 ----------------------------------------------------------------
 -- Uniform instances
@@ -91,3 +92,49 @@ instance (Uniform a, Uniform b) => Uniform (a,b) where
     a <- uniform
     b <- uniform
     return (a,b)
+
+
+----------------------------------------------------------------
+-- Uniform range
+----------------------------------------------------------------
+
+
+
+----------------------------------------------------------------
+-- Uniform01
+----------------------------------------------------------------
+
+instance Uniform01 Float where
+  uniform01 = do
+    w <- uniformWord32
+    return $! wordToFloat w
+  uniform01Z = do
+    x <- uniform01
+    return $ x - 2**(-33)
+
+instance Uniform01 Double where
+  uniform01 = do
+    w <- uniformWord64
+    return $! wordToDouble w
+  uniform01Z = do
+    x <- uniform01
+    return $ x - 2**(-53)
+
+
+wordToDouble :: Word64 -> Double
+wordToDouble w    = (fromIntegral u * m_inv_32 + (0.5 + m_inv_53) +
+                     fromIntegral (v .&. 0xFFFFF) * m_inv_52)
+    where m_inv_52 = 2.220446049250313080847263336181640625e-16
+          m_inv_53 = 1.1102230246251565404236316680908203125e-16
+          m_inv_32 = 2.3283064365386962890625e-10
+          u        = fromIntegral w               :: Int32
+          v        = fromIntegral (w `shiftR` 32) :: Int32
+{-# INLINE wordToDouble #-}
+
+
+wordToFloat :: Word32 -> Float
+wordToFloat x      = (fromIntegral i * m_inv_32) + 0.5 + m_inv_33
+    where m_inv_33 = 1.16415321826934814453125e-10
+          m_inv_32 = 2.3283064365386962890625e-10
+          i        = fromIntegral x :: Int32
+{-# INLINE wordToFloat #-}
