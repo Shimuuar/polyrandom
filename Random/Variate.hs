@@ -20,7 +20,7 @@ import Random.Class
 class Uniform a where
   uniform :: MonadRandom m => m a
 
--- | Generate value in range
+-- | Generate value in inclusive range.
 class UniformR a where
   uniformR :: MonadRandom m => (a,a) -> m a
 
