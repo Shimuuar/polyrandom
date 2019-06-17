@@ -1,0 +1,30 @@
+Name:           polyrandom
+Version:        0.1
+Synopsis:       Generic library for random number generation
+Description:
+  Rich collectio of primitives for random number generation and multiple PRNGs 
+
+Cabal-Version:  >= 1.10
+License:        BSD3
+License-File:   LICENSE
+Author:         Aleksey Khudyakov <alexey.skladnoy@gmail.com>
+Maintainer:     Aleksey Khudyakov <alexey.skladnoy@gmail.com>
+Homepage:       http://github.com/Shimuuar/polyrandom
+Category:       Data
+Build-Type:     Simple
+
+source-repository head
+  type:     git
+  location: https://github.com/Shimuuar/polyrandom
+
+Library
+  Ghc-options:         -Wall
+  Default-Language:    Haskell2010
+  Build-Depends:       base >=3 && <5
+                     , transformers
+                     , bytestring
+                     , primitive
+                
+  Exposed-modules:
+                  Random.Class
+                  Random.PRNG
