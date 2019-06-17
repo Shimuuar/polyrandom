@@ -21,7 +21,7 @@ import qualified Random.PRNG as PRNG
 ----------------------------------------------------------------
 
 -- | API for using PRNGs
-class MonadRandom m where
+class Monad m => MonadRandom m where
   -- | Underlying PRNG
   type PRNG m
   -- | Generate uniformly distributed 32-bit word

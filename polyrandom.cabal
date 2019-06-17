@@ -28,3 +28,4 @@ Library
   Exposed-modules:
                   Random.Class
                   Random.PRNG
+                  Random.Variate
