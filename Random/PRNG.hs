@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 -- |
 -- Low level API for PRNG. Concrete implementations of generators are
--- expected to implement there interfaces. 
+-- expected to implement there interfaces.
 module Random.PRNG (
     -- * Word sizes
     W
@@ -52,7 +52,7 @@ instance Reify 'W64 where reify _ = W64
 
 -- | Width of output of PRNG
 type family OutputWidth g :: W
-  
+
 -- | State size of PRNG in bytes.
 type family StateSize g :: Nat
 
@@ -69,12 +69,16 @@ class Reify (OutputWidth g) => Pure g where
   -- | State of PRNG
   data State g
   -- | Generate single uniformly distributed 32-bit word
-  step32 :: State g -> (State g, Word32)
+  step32  :: State g -> (State g, Word32)
   -- | Generate single uniformly distributed 64-bit word
-  step64 :: State g -> (State g, Word64)
+  step64  :: State g -> (State g, Word64)
+  -- | @step32R g n@ generates number in range @[0,n]@
+  step32Rng :: State g -> Word32 -> (State g, Word32)
+  -- | @step32R g n@ generates number in range @[0,n]@
+  step64Rng :: State g -> Word32 -> (State g, Word64)
   -- | Save state of PRNG.
   save    :: State g -> Seed g
-  -- | Restore state from seed. Any seed 
+  -- | Restore state from seed. Any seed
   restore :: Seed g -> State g
 
 
@@ -83,10 +87,14 @@ class Reify (OutputWidth g) => Pure g where
 class Reify (OutputWidth g) => Stateful g where
   -- | Reference to mutable state of generator
   data Ref g :: * -> *
-  -- | Generate single uniformly distributed word and mutate state of
-  --   generator in process.
-  stepSt32  :: PrimMonad m => Ref g (PrimState m) -> m Word32
-  stepSt64  :: PrimMonad m => Ref g (PrimState m) -> m Word64
+  -- | Generate uniformly distributed 32-bit word
+  stepSt32    :: PrimMonad m => Ref g (PrimState m) -> m Word32
+  -- | Generate uniformly distributed 64-bit word
+  stepSt64    :: PrimMonad m => Ref g (PrimState m) -> m Word64
+  -- | @step32R g n@ generates number in range @[0,n]@
+  stepSt32Rng :: PrimMonad m => Ref g (PrimState m) -> Word32 -> m Word32
+  -- | @step32R g n@ generates number in range @[0,n]@
+  stepSt64Rng :: PrimMonad m => Ref g (PrimState m)-> Word64 -> m Word64
   -- | Save state of PRNG in
   saveSt    :: PrimMonad m => Ref g (PrimState m) -> m (Seed g)
   -- | Restore state of PRNG
