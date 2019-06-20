@@ -103,10 +103,27 @@ instance (Uniform a, Uniform b) => Uniform (a,b) where
     b <- uniform
     return (a,b)
 
+instance (Uniform a, Uniform b, Uniform c) => Uniform (a,b,c) where
+  uniform = do
+    a <- uniform
+    b <- uniform
+    c <- uniform
+    return (a,b,c)
+
 
 ----------------------------------------------------------------
 -- Uniform range
 ----------------------------------------------------------------
+
+instance UniformR Word8 where
+  uniformR (x1,x2) = do
+    x <- uniformR (fromIntegral x1 :: Word32, fromIntegral x2 :: Word32)
+    return $! fromIntegral x
+
+instance UniformR Word16 where
+  uniformR (x1,x2) = do
+    x <- uniformR (fromIntegral x1 :: Word32, fromIntegral x2 :: Word32)
+    return $! fromIntegral x
 
 instance UniformR Word32 where
   uniformR (x1,x2)
@@ -127,6 +144,49 @@ instance UniformR Word64 where
       (# a , b #) | x1 < x2   = (# x1, x2 #)
                   | otherwise = (# x2, x1 #)
       n = b - a + 1
+
+instance UniformR Word where
+  uniformR (x1,x2) = do
+    x <- uniformR (fromIntegral x1 :: Word64, fromIntegral x2 :: Word64)
+    return $! fromIntegral x
+
+
+
+instance UniformR Int8 where
+  uniformR (x1,x2) = do
+    x <- uniformR (fromIntegral x1 :: Int32, fromIntegral x2 :: Int32)
+    return $! fromIntegral x
+
+instance UniformR Int16 where
+  uniformR (x1,x2) = do
+    x <- uniformR (fromIntegral x1 :: Int32, fromIntegral x2 :: Int32)
+    return $! fromIntegral x
+
+instance UniformR Int32 where
+  uniformR (x1,x2)
+    | n == 0    = uniform
+    | otherwise = do x <- uniformRWord32 n
+                     return $! fromIntegral x + a
+    where
+      (# a , b #) | x1 < x2   = (# x1, x2 #)
+                  | otherwise = (# x2, x1 #)
+      n = fromIntegral $! b - a + 1
+
+instance UniformR Int64 where
+  uniformR (x1,x2)
+    | n == 0    = uniform
+    | otherwise = do x <- uniformRWord64 n
+                     return $! fromIntegral x + a
+    where
+      (# a , b #) | x1 < x2   = (# x1, x2 #)
+                  | otherwise = (# x2, x1 #)
+      n = fromIntegral $! b - a + 1
+
+instance UniformR Int where
+  uniformR (x1,x2) = do
+    x <- uniformR (fromIntegral x1 :: Int64, fromIntegral x2 :: Int64)
+    return $! fromIntegral x
+
 
 ----------------------------------------------------------------
 -- Uniform01
