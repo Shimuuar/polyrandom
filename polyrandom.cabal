@@ -29,3 +29,4 @@ Library
                   Random.Class
                   Random.PRNG
                   Random.Variate
+                  Random.Gen.LCG
