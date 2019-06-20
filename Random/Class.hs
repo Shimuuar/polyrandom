@@ -50,7 +50,7 @@ class Monad m => MonadRandom m where
 ----------------------------------------------------------------
 
 newtype RandT g m a = RandT
-  { unRandT :: StateT (PRNG.State g) m a }
+  { unRandT :: StateT g m a }
   deriving (Functor, Applicative, Monad)
 
 
