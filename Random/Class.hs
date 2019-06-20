@@ -11,7 +11,6 @@ import Control.Monad.Primitive
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.State.Strict
-import Data.Proxy
 import Data.Word
 
 import qualified Random.PRNG as PRNG
@@ -40,8 +39,6 @@ class Monad m => MonadRandom m where
   uniformDouble01  :: m Double
   -- | Generate @Double@ in the range [0.1)
   uniformDouble01Z :: m Double
-  -- | Primitive for choosing 
-  wordWidthChoice  :: (PRNG.W -> m a) -> m a
   -- | Reset generator state to value provided in the seed
   restoreSeed      :: PRNG.Seed (PRNG m) -> m ()
   -- | Save current state of generator as seed
@@ -108,7 +105,6 @@ instance (PRNG.Pure g, Monad m) => MonadRandom (RandT g m) where
     put g'
     return x
   --
-  wordWidthChoice cont = cont (PRNG.reify (Proxy :: Proxy (PRNG.OutputWidth g)))
   restoreSeed = RandT . put . PRNG.restore
   saveSeed    = RandT $ do
     g <- get
@@ -134,6 +130,5 @@ instance (PRNG.Stateful g, PrimMonad m) => MonadRandom (MRandT g m) where
   uniformFloat01Z      = MRandT $ ReaderT $ PRNG.stepStFloat01Z
   uniformDouble01      = MRandT $ ReaderT $ PRNG.stepStDouble01
   uniformDouble01Z     = MRandT $ ReaderT $ PRNG.stepStDouble01Z
-  wordWidthChoice cont = cont (PRNG.reify (Proxy :: Proxy (PRNG.OutputWidth g)))
   restoreSeed     seed = MRandT $ ReaderT $ \g -> PRNG.restoreSt g seed
   saveSeed             = MRandT $ ReaderT $ PRNG.saveSt

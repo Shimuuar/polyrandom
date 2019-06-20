@@ -10,13 +10,7 @@
 -- have to use sampling with rejection and algorithms for generating
 -- numbers in the interval will be different as well.
 module Random.PRNG (
-    -- * Word sizes
-    W
-  , WordTy
-  , Reify(..)
-    -- * PRNG API
-  , OutputWidth
-  , StateSize
+    StateSize
   , SeedSize
   , Seed(..)
     -- ** Two APIs
@@ -25,40 +19,17 @@ module Random.PRNG (
   ) where
 
 import Control.Monad.Primitive
-import Data.Proxy
 import Data.ByteString (ByteString)
 import Data.Word       (Word32,Word64)
 import GHC.TypeLits
 
 
 ----------------------------------------------------------------
--- Word sizes
-----------------------------------------------------------------
-
--- | Word size. We support two word sizes.
-data W
-  = W32
-  | W64
-
--- | Mapping from word size to haskell data types
-type family WordTy w where
-  WordTy 'W32 = Word32
-  WordTy 'W64 = Word64
-
-class Reify (w :: W) where
-  reify :: Proxy w -> W
-
-instance Reify 'W32 where reify _ = W32
-instance Reify 'W64 where reify _ = W64
-
-----------------------------------------------------------------
 -- PRNG API
 ----------------------------------------------------------------
 
--- | Width of output of PRNG
-type family OutputWidth g :: W
-
--- | State size of PRNG in bytes.
+-- | State size of PRNG in bytes. Note that it's size of serialized
+--   representation of state.
 type family StateSize g :: Nat
 
 -- | Size of initial seed. It could be less than @StateSize@
@@ -70,7 +41,7 @@ newtype Seed g = Seed ByteString
 
 -- | PRNG with state as pure value. Such PRNGs are meant to be used in
 --   the state monads.
-class Reify (OutputWidth g) => Pure g where
+class Pure g where
   -- | State of PRNG
   data State g
   -- | Generate single uniformly distributed 32-bit word
@@ -99,7 +70,7 @@ class Reify (OutputWidth g) => Pure g where
 
 -- | RNGS with mutable state. As a general rule it should be assumed
 --   that it's not safe to use single generator from multiple threads.
-class Reify (OutputWidth g) => Stateful g where
+class Stateful g where
   -- | Reference to mutable state of generator
   data Ref g :: * -> *
   -- | Generate uniformly distributed 32-bit word
