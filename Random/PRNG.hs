@@ -1,9 +1,14 @@
+{-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE DataKinds    #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies     #-}
 -- |
 -- Low level API for PRNG. Concrete implementations of generators are
--- expected to implement there interfaces.
+-- expected to implement there interfaces. Unfortunately these
+-- interfaces are rather large. For example if PRNG generates uniform
+-- 32-bit words 'step32' will be basic primitive but if we're using
+-- LCG which generates numbers in interval [0,2^31-1) @step32@ will
+-- have to use sampling with rejection and algorithms for generating
+-- numbers in the interval will be different as well.
 module Random.PRNG (
     -- * Word sizes
     W
@@ -64,7 +69,7 @@ newtype Seed g = Seed ByteString
 
 
 -- | PRNG with state as pure value. Such PRNGs are meant to be used in
---   the state monads
+--   the state monads.
 class Reify (OutputWidth g) => Pure g where
   -- | State of PRNG
   data State g
@@ -73,12 +78,22 @@ class Reify (OutputWidth g) => Pure g where
   -- | Generate single uniformly distributed 64-bit word
   step64  :: State g -> (State g, Word64)
   -- | @step32R g n@ generates number in range @[0,n]@
-  step32Rng :: State g -> Word32 -> (State g, Word32)
-  -- | @step32R g n@ generates number in range @[0,n]@
-  step64Rng :: State g -> Word32 -> (State g, Word64)
-  -- | Save state of PRNG.
+  step32R :: State g -> Word32 -> (State g, Word32)
+  -- | @step64R g n@ generates number in range @[0,n]@
+  step64R :: State g -> Word64 -> (State g, Word64)
+  -- | Generate @Float@ in the range (0,1]
+  stepFloat01  :: State g -> (State g, Float)
+  -- | Generate @Float@ in the range [0,1)
+  stepFloat01Z :: State g -> (State g, Float)
+  -- | Generate @Double@ in the range (0,1]
+  stepDouble01  :: State g -> (State g, Double)
+  -- | Generate @Double@ in the range [0,1)
+  stepDouble01Z :: State g -> (State g, Double)
+  -- | Save state of PRNG as bytestring.
   save    :: State g -> Seed g
-  -- | Restore state from seed. Any seed
+  -- | Restore state from seed. Seed of any length should be
+  --   accepted. If seed is too long it's OK to use only initial
+  --   information
   restore :: Seed g -> State g
 
 
@@ -88,14 +103,22 @@ class Reify (OutputWidth g) => Stateful g where
   -- | Reference to mutable state of generator
   data Ref g :: * -> *
   -- | Generate uniformly distributed 32-bit word
-  stepSt32    :: PrimMonad m => Ref g (PrimState m) -> m Word32
+  stepSt32        :: PrimMonad m => Ref g (PrimState m) -> m Word32
   -- | Generate uniformly distributed 64-bit word
-  stepSt64    :: PrimMonad m => Ref g (PrimState m) -> m Word64
+  stepSt64        :: PrimMonad m => Ref g (PrimState m) -> m Word64
   -- | @step32R g n@ generates number in range @[0,n]@
-  stepSt32Rng :: PrimMonad m => Ref g (PrimState m) -> Word32 -> m Word32
+  stepSt32R       :: PrimMonad m => Ref g (PrimState m) -> Word32 -> m Word32
   -- | @step32R g n@ generates number in range @[0,n]@
-  stepSt64Rng :: PrimMonad m => Ref g (PrimState m)-> Word64 -> m Word64
-  -- | Save state of PRNG in
-  saveSt    :: PrimMonad m => Ref g (PrimState m) -> m (Seed g)
+  stepSt64R       :: PrimMonad m => Ref g (PrimState m) -> Word64 -> m Word64
+  -- | Generate @Float@ in the range (0,1]
+  stepStFloat01   :: PrimMonad m => Ref g (PrimState m) -> m Float
+  -- | Generate @Float@ in the range [0.1)
+  stepStFloat01Z  :: PrimMonad m => Ref g (PrimState m) -> m Float
+  -- | Generate @Double@ in the range (0.1]
+  stepStDouble01  :: PrimMonad m => Ref g (PrimState m) -> m Double
+  -- | Generate @Double@ in the range [0.1)
+  stepStDouble01Z :: PrimMonad m => Ref g (PrimState m) -> m Double
+  -- | Save state of PRNG in bytestring
+  saveSt          :: PrimMonad m => Ref g (PrimState m) -> m (Seed g)
   -- | Restore state of PRNG
-  restoreSt :: PrimMonad m => Ref g (PrimState m) -> Seed g -> m ()
+  restoreSt       :: PrimMonad m => Ref g (PrimState m) -> Seed g -> m ()

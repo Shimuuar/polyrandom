@@ -28,6 +28,8 @@ class Monad m => MonadRandom m where
   uniformWord32 :: m Word32
   -- | Generate uniformly distributed 64-bit word
   uniformWord64 :: m Word64
+  uniformRWord32 :: Word32 -> m Word32
+  uniformRWord64 :: Word64 -> m Word64
   -- | Primitive for choosing 
   wordWidthChoice :: (PRNG.W -> m a) -> m a
   -- | Reset generator state to value provided in the seed
@@ -60,6 +62,18 @@ instance (PRNG.Pure g, Monad m) => MonadRandom (RandT g m) where
     put g'
     return w
   --
+  uniformRWord32 n = RandT $ do
+    g <- get
+    let (!g', !w) = PRNG.step32R g n
+    put g'
+    return w
+  --
+  uniformRWord64 n = RandT $ do
+    g <- get
+    let (!g', !w) = PRNG.step64R g n
+    put g'
+    return w
+  --
   wordWidthChoice cont = cont (PRNG.reify (Proxy :: Proxy (PRNG.OutputWidth g)))
   restoreSeed = RandT . put . PRNG.restore
   saveSeed    = RandT $ do
@@ -80,6 +94,8 @@ instance (PRNG.Stateful g, PrimMonad m) => MonadRandom (MRandT g m) where
   --
   uniformWord32        = MRandT $ ReaderT $ PRNG.stepSt32
   uniformWord64        = MRandT $ ReaderT $ PRNG.stepSt64
+  uniformRWord32 n     = MRandT $ ReaderT $ \g -> PRNG.stepSt32R g n
+  uniformRWord64 n     = MRandT $ ReaderT $ \g -> PRNG.stepSt64R g n
   wordWidthChoice cont = cont (PRNG.reify (Proxy :: Proxy (PRNG.OutputWidth g)))
   restoreSeed     seed = MRandT $ ReaderT $ \g -> PRNG.restoreSt g seed
   saveSeed             = MRandT $ ReaderT $ PRNG.saveSt
