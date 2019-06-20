@@ -10,15 +10,24 @@
 -- have to use sampling with rejection and algorithms for generating
 -- numbers in the interval will be different as well.
 module Random.PRNG (
+    -- * Low level API
     StateSize
   , SeedSize
   , Seed(..)
     -- ** Two APIs
   , Pure(..)
   , Stateful(..)
+    -- * Primitive combinators
+  , wordToDouble
+  , wordToFloat
+    -- * References
+    -- $references
   ) where
 
 import Control.Monad.Primitive
+import Data.Bits
+import Data.Int
+import Data.Word
 import Data.ByteString (ByteString)
 import Data.Word       (Word32,Word64)
 import GHC.TypeLits
@@ -93,3 +102,33 @@ class Stateful g where
   saveSt          :: PrimMonad m => Ref g (PrimState m) -> m (Seed g)
   -- | Restore state of PRNG
   restoreSt       :: PrimMonad m => Ref g (PrimState m) -> Seed g -> m ()
+
+
+
+----------------------------------------------------------------
+-- Primitive combinators
+----------------------------------------------------------------
+
+wordToDouble :: Word32 -> Word32 -> Double
+wordToDouble u v   = (fromIntegral u * m_inv_32 + (0.5 + m_inv_53) +
+                     fromIntegral (v .&. 0xFFFFF) * m_inv_52)
+    where m_inv_52 = 2.220446049250313080847263336181640625e-16  -- 2^{-52} 
+          m_inv_53 = 1.1102230246251565404236316680908203125e-16 -- 2^{-53}
+          m_inv_32 = 2.3283064365386962890625e-10                -- 2^{-32}
+{-# INLINE wordToDouble #-}
+
+
+wordToFloat :: Word32 -> Float
+wordToFloat x      = (fromIntegral i * m_inv_32) + 0.5 + m_inv_33
+    where m_inv_33 = 1.16415321826934814453125e-10
+          m_inv_32 = 2.3283064365386962890625e-10
+          i        = fromIntegral x :: Int32
+{-# INLINE wordToFloat #-}
+
+
+-- $references
+--
+-- * Doornik, J.A. (2007) Conversion of high-period random numbers to
+--   floating point.
+--   /ACM Transactions on Modeling and Computer Simulation/ 17(1).
+--   <http://www.doornik.com/research/randomdouble.pdf>
