@@ -19,7 +19,9 @@ module Random.PRNG (
   , Stateful(..)
     -- * Primitive combinators
   , wordToDouble
+  , wordToDoubleZ
   , wordToFloat
+  , wordToFloatZ
     -- * References
     -- $references
   ) where
@@ -108,20 +110,32 @@ class Stateful g where
 ----------------------------------------------------------------
 
 wordToDouble :: Word32 -> Word32 -> Double
-wordToDouble u v   = (fromIntegral u * m_inv_32 + (0.5 + m_inv_53) +
-                     fromIntegral (v .&. 0xFFFFF) * m_inv_52)
-    where m_inv_52 = 2.220446049250313080847263336181640625e-16  -- 2^{-52} 
-          m_inv_53 = 1.1102230246251565404236316680908203125e-16 -- 2^{-53}
-          m_inv_32 = 2.3283064365386962890625e-10                -- 2^{-32}
+wordToDouble u v = (fromIntegral u * d_inv_32 + (0.5 + d_inv_53)
+                 + fromIntegral (v .&. 0xFFFFF) * d_inv_52)
 {-# INLINE wordToDouble #-}
 
+wordToDoubleZ :: Word32 -> Word32 -> Double
+wordToDoubleZ u v = wordToDouble u v - d_inv_53
+{-# INLINE wordToDoubleZ #-}
 
 wordToFloat :: Word32 -> Float
-wordToFloat x      = (fromIntegral i * m_inv_32) + 0.5 + m_inv_33
-    where m_inv_33 = 1.16415321826934814453125e-10
-          m_inv_32 = 2.3283064365386962890625e-10
-          i        = fromIntegral x :: Int32
+wordToFloat x = (fromIntegral i * f_inv_32) + 0.5 + f_inv_33
+  where
+    i = fromIntegral x :: Int32
 {-# INLINE wordToFloat #-}
+
+wordToFloatZ :: Word32 -> Float
+wordToFloatZ x = wordToFloat x - f_inv_33
+{-# INLINE wordToFloatZ #-}
+
+d_inv_52, d_inv_53, d_inv_32 :: Double
+d_inv_52 = 2.220446049250313080847263336181640625e-16  -- 2^{-52}
+d_inv_53 = 1.1102230246251565404236316680908203125e-16 -- 2^{-53}
+d_inv_32 = 2.3283064365386962890625e-10                -- 2^{-32}
+
+f_inv_33, f_inv_32 :: Float
+f_inv_33 = 1.16415321826934814453125e-10
+f_inv_32 = 2.3283064365386962890625e-10
 
 
 -- $references
