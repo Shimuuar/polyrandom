@@ -1,3 +1,4 @@
+{-# LANGUAGE UnboxedTuples #-}
 -- |
 module Random.Variate (
     -- * Type classes
@@ -27,6 +28,7 @@ import Random.Class
 class Uniform a where
   uniform :: MonadRandom m => m a
 
+
 -- | Generate value in inclusive range.
 class UniformR a where
   uniformR :: MonadRandom m => (a,a) -> m a
@@ -40,6 +42,7 @@ class Uniform01 a where
   uniform01  :: MonadRandom m => m a
   -- | Generate random number in range [0,1).
   uniform01Z :: MonadRandom m => m a
+
 
 ----------------------------------------------------------------
 -- Uniform instances
@@ -105,7 +108,25 @@ instance (Uniform a, Uniform b) => Uniform (a,b) where
 -- Uniform range
 ----------------------------------------------------------------
 
+instance UniformR Word32 where
+  uniformR (x1,x2)
+    | n == 0    = uniform
+    | otherwise = do x <- uniformRWord32 n
+                     return $! x + a
+    where
+      (# a , b #) | x1 < x2   = (# x1, x2 #)
+                  | otherwise = (# x2, x1 #)
+      n = b - a + 1
 
+instance UniformR Word64 where
+  uniformR (x1,x2)
+    | n == 0    = uniform
+    | otherwise = do x <- uniformRWord64 n
+                     return $! x + a
+    where
+      (# a , b #) | x1 < x2   = (# x1, x2 #)
+                  | otherwise = (# x2, x1 #)
+      n = b - a + 1
 
 ----------------------------------------------------------------
 -- Uniform01
