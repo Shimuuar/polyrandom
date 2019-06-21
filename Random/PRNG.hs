@@ -22,8 +22,10 @@ module Random.PRNG (
   , Stateful(..)
     -- * Primitive combinators
     -- ** Floating point
-  , wordToDouble
-  , wordToDoubleZ
+  , wordsToDouble
+  , wordsToDoubleZ
+  , word64ToDouble
+  , word64ToDoubleZ
   , wordToFloat
   , wordToFloatZ
     -- ** Integral ranges
@@ -35,7 +37,6 @@ module Random.PRNG (
 import Control.Monad.Primitive
 import Data.Bits
 import Data.Int
-import Data.Word
 import Data.ByteString (ByteString)
 import Data.Word       (Word32,Word64)
 import GHC.TypeLits
@@ -129,14 +130,26 @@ class Stateful g where
 -- Primitive combinators
 ----------------------------------------------------------------
 
-wordToDouble :: Word32 -> Word32 -> Double
-wordToDouble u v = (fromIntegral u * d_inv_32 + (0.5 + d_inv_53)
+wordsToDouble :: Word32 -> Word32 -> Double
+wordsToDouble u v = (fromIntegral u * d_inv_32 + (0.5 + d_inv_53)
                  + fromIntegral (v .&. 0xFFFFF) * d_inv_52)
-{-# INLINE wordToDouble #-}
+{-# INLINE wordsToDouble #-}
 
-wordToDoubleZ :: Word32 -> Word32 -> Double
-wordToDoubleZ u v = wordToDouble u v - d_inv_53
-{-# INLINE wordToDoubleZ #-}
+wordsToDoubleZ :: Word32 -> Word32 -> Double
+wordsToDoubleZ u v = wordsToDouble u v - d_inv_53
+{-# INLINE wordsToDoubleZ #-}
+
+
+word64ToDouble :: Word64 -> Double
+word64ToDouble w
+  = wordsToDouble (fromIntegral w) (fromIntegral (w `shiftR` 32))
+{-# INLINE word64ToDouble #-}
+
+word64ToDoubleZ :: Word64 -> Double
+word64ToDoubleZ w
+  = wordsToDoubleZ (fromIntegral w) (fromIntegral (w `shiftR` 32))
+{-# INLINE word64ToDoubleZ #-}
+
 
 wordToFloat :: Word32 -> Float
 wordToFloat x = (fromIntegral i * f_inv_32) + 0.5 + f_inv_33

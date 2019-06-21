@@ -44,12 +44,10 @@ stepMLCG = PRNG.Rand $ \(MLCG w) ->
 instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCG Word32 a m) where
   step32        = PRNG.step32R maxBound
   step64        = PRNG.step64R maxBound
-  step32R w     = do
-    PRNG.uniformWithRejection m w stepMLCG
+  step32R w     = PRNG.uniformWithRejection m w stepMLCG
     where
       m = fromInteger $ natVal (Proxy :: Proxy m)
-  step64R w     = do
-    PRNG.uniformWithRejection m w stepMLCG
+  step64R w     = PRNG.uniformWithRejection m w stepMLCG
     where
       m = fromInteger $ natVal (Proxy :: Proxy m)
   stepFloat01   = do
@@ -61,10 +59,35 @@ instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCG Word32 a m) where
   stepDouble01  = do
     w1 <- PRNG.step32
     w2 <- PRNG.step32
-    return $! PRNG.wordToDouble w1 w2
+    return $! PRNG.wordsToDouble w1 w2
   stepDouble01Z = do
     w1 <- PRNG.step32
     w2 <- PRNG.step32
-    return $! PRNG.wordToDoubleZ w1 w2
+    return $! PRNG.wordsToDoubleZ w1 w2
   save    = undefined
   restore = undefined
+
+instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCG Word64 a m) where
+  step32        = PRNG.step32R maxBound
+  step64        = PRNG.step64R maxBound
+  step32R w     = do
+    x <- PRNG.step64R (fromIntegral w)
+    return $! fromIntegral x
+  step64R w     = PRNG.uniformWithRejection m w stepMLCG
+    where
+      m = fromInteger $ natVal (Proxy :: Proxy m)
+  stepFloat01   = do
+    w <- PRNG.step32
+    return $! PRNG.wordToFloat w
+  stepFloat01Z  = do
+    w <- PRNG.step32
+    return $! PRNG.wordToFloatZ w
+  stepDouble01  = do
+    w <- PRNG.step64
+    return $! PRNG.word64ToDouble w
+  stepDouble01Z = do
+    w <- PRNG.step64
+    return $! PRNG.word64ToDoubleZ w
+  save    = undefined
+  restore = undefined
+  
