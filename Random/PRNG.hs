@@ -1,6 +1,8 @@
 {-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE DeriveFunctor    #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeFamilies     #-}
+{-# LANGUAGE UnboxedTuples    #-}
 -- |
 -- Low level API for PRNG. Concrete implementations of generators are
 -- expected to implement there interfaces. Unfortunately these
@@ -15,6 +17,7 @@ module Random.PRNG (
   , SeedSize
   , Seed(..)
     -- ** Two APIs
+  , Rand(..)
   , Pure(..)
   , Stateful(..)
     -- * Primitive combinators
@@ -49,26 +52,40 @@ type family SeedSize g :: Nat
 -- | Serialized state of PRNG.
 newtype Seed g = Seed ByteString
 
+newtype Rand g a = Rand { unRand :: g -> (# g , a #) }
+  deriving (Functor)
+
+instance Applicative (Rand g) where
+  pure a = Rand $ \g -> (# g, a #)
+  Rand f <*> Rand x = Rand $ \g -> let (# g' , f' #) = f g
+                                       (# g'', x' #) = x g'
+                                   in  (# g'', f' x' #)
+
+instance Monad (Rand g) where
+  return  = pure
+  m >>= f = Rand $ \g -> let (# g', a #) = unRand m g
+                         in  unRand (f a) g'
+
 
 -- | PRNG with state as pure value. Such PRNGs are meant to be used in
 --   the state monads.
 class Pure g where
   -- | Generate single uniformly distributed 32-bit word
-  step32  :: g -> (g, Word32)
+  step32  :: Rand g Word32
   -- | Generate single uniformly distributed 64-bit word
-  step64  :: g -> (g, Word64)
+  step64  :: Rand g Word64
   -- | @step32R g n@ generates number in range @[0,n]@
-  step32R :: g -> Word32 -> (g, Word32)
+  step32R :: Word32 -> Rand g Word32
   -- | @step64R g n@ generates number in range @[0,n]@
-  step64R :: g -> Word64 -> (g, Word64)
+  step64R :: Word64 -> Rand g Word64
   -- | Generate @Float@ in the range (0,1]
-  stepFloat01  :: g -> (g, Float)
+  stepFloat01  :: Rand g Float
   -- | Generate @Float@ in the range [0,1)
-  stepFloat01Z :: g -> (g, Float)
+  stepFloat01Z :: Rand g Float
   -- | Generate @Double@ in the range (0,1]
-  stepDouble01  :: g -> (g, Double)
+  stepDouble01  :: Rand g Double
   -- | Generate @Double@ in the range [0,1)
-  stepDouble01Z :: g -> (g, Double)
+  stepDouble01Z :: Rand g Double
   -- | Save state of PRNG as bytestring.
   save    :: g -> Seed g
   -- | Restore state from seed. Seed of any length should be

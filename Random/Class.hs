@@ -3,6 +3,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UnboxedTuples              #-}
 -- |
 module Random.Class where
 
@@ -49,62 +50,42 @@ class Monad m => MonadRandom m where
 -- Concrete implementations for pure PRNG
 ----------------------------------------------------------------
 
+instance PRNG.Pure g => MonadRandom (PRNG.Rand g) where
+  type PRNG (PRNG.Rand g) = g
+  uniformWord32    = PRNG.step32
+  uniformWord64    = PRNG.step64
+  uniformRWord32   = PRNG.step32R
+  uniformRWord64   = PRNG.step64R
+  uniformFloat01   = PRNG.stepFloat01
+  uniformFloat01Z  = PRNG.stepFloat01Z
+  uniformDouble01  = PRNG.stepDouble01
+  uniformDouble01Z = PRNG.stepDouble01Z
+  restoreSeed seed = PRNG.Rand $ \_ -> (# PRNG.restore seed, () #)
+  saveSeed         = PRNG.Rand $ \g -> (# g , PRNG.save g #)
+
+
 newtype RandT g m a = RandT
   { unRandT :: StateT g m a }
   deriving (Functor, Applicative, Monad)
 
+liftRand :: Monad m => PRNG.Rand g a -> RandT g m a
+{-# INLINE liftRand #-}
+liftRand rnd = RandT $ do
+  g <- get
+  let (# g', a #) = PRNG.unRand rnd g
+  put g'
+  return a
 
 instance (PRNG.Pure g, Monad m) => MonadRandom (RandT g m) where
   type PRNG (RandT g m) = g
-  --
-  uniformWord32 = RandT $ do
-    g <- get
-    let (!g', !w) = PRNG.step32 g
-    put g'
-    return w
-  --
-  uniformWord64 = RandT $ do
-    g <- get
-    let (!g', !w) = PRNG.step64 g
-    put g'
-    return w
-  --
-  uniformRWord32 n = RandT $ do
-    g <- get
-    let (!g', !w) = PRNG.step32R g n
-    put g'
-    return w
-  --
-  uniformRWord64 n = RandT $ do
-    g <- get
-    let (!g', !w) = PRNG.step64R g n
-    put g'
-    return w
-  --
-  uniformFloat01 = RandT $ do
-    g <- get
-    let (!g', !x) = PRNG.stepFloat01 g
-    put g'
-    return x
-  --
-  uniformFloat01Z = RandT $ do
-    g <- get
-    let (!g', !x) = PRNG.stepFloat01Z g
-    put g'
-    return x
-  --
-  uniformDouble01 = RandT $ do
-    g <- get
-    let (!g', !x) = PRNG.stepDouble01 g
-    put g'
-    return x
-  --
-  uniformDouble01Z = RandT $ do
-    g <- get
-    let (!g', !x) = PRNG.stepDouble01Z g
-    put g'
-    return x
-  --
+  uniformWord32    = liftRand uniformWord32
+  uniformWord64    = liftRand uniformWord64
+  uniformRWord32   = liftRand . uniformRWord32
+  uniformRWord64   = liftRand . uniformRWord64
+  uniformFloat01   = liftRand uniformFloat01
+  uniformFloat01Z  = liftRand uniformFloat01Z
+  uniformDouble01  = liftRand uniformDouble01
+  uniformDouble01Z = liftRand uniformDouble01Z
   restoreSeed = RandT . put . PRNG.restore
   saveSeed    = RandT $ do
     g <- get
