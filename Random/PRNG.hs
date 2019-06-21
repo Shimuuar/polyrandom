@@ -21,10 +21,13 @@ module Random.PRNG (
   , Pure(..)
   , Stateful(..)
     -- * Primitive combinators
+    -- ** Floating point
   , wordToDouble
   , wordToDoubleZ
   , wordToFloat
   , wordToFloatZ
+    -- ** Integral ranges
+  , uniformWithRejection
     -- * References
     -- $references
   ) where
@@ -154,6 +157,63 @@ f_inv_33, f_inv_32 :: Float
 f_inv_33 = 1.16415321826934814453125e-10
 f_inv_32 = 2.3283064365386962890625e-10
 
+
+----------------------------------------------------------------
+-- Integral numbers
+----------------------------------------------------------------
+
+-- | Generate uniform random number with rejection. This method could
+--   not be used if PRNG generates uniform Word32\/Word64 since number
+--   of generated states is not representable.
+uniformWithRejection
+  :: (Integral a, Monad m)
+  => a    -- ^ Number of distinct values that could be generated. In
+          --   other words generator can produce values in range @[0,N)@
+  -> a    -- ^ @n@ we want to generate numbers in range @[0,n]@. Note
+          --   that range in inclusive in this case!
+  -> m a  -- ^ PRNG generator
+  -> m a
+uniformWithRejection genRange range generator
+  -- nGen == 0 if we need to generate full range of word.
+  | nGen > genRange || nGen == 0 = upscaledRej
+  | nGen < genRange              = simpleRej
+  | otherwise                    = generator
+  where
+    -- Number of values we want to generate. Will overflow if range is maxBound
+    nGen      = range + 1
+    -- Simple sampling with rejection.
+    buckets   = genRange `div` nGen
+    maxN      = nGen * buckets
+    simpleRej = do x <- generator
+                   if x < maxN then return $! x `div` buckets
+                               else simpleRej
+    -- We need to upscale generator. Note that for every
+    --   x \in [0, range]
+    --
+    -- it could be uniquely represented as
+    --
+    --   x = genRange * j + i
+    --
+    --   i \in [0, genRange)
+    --   j \in [0, range / genRange]
+    --
+    -- Alternatively j could be written as
+    --
+    --   j \in [0, roundup(nGen / genRange))
+    --
+    -- We need to watch for overflows as well
+    upscaledRej = do
+      i <- generator
+      j <- uniformWithRejection genRange (range `div` genRange) generator
+      case j + i of
+        r | r < j     -> upscaledRej -- Overflow
+          | r > range -> upscaledRej -- Rejection
+          | otherwise -> return r
+
+
+----------------------------------------------------------------
+--
+----------------------------------------------------------------
 
 -- $references
 --
