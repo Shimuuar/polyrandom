@@ -45,11 +45,9 @@ instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCG Word32 a m) where
   step32        = PRNG.step32R maxBound
   step64        = PRNG.step64R maxBound
   step32R w     = PRNG.uniformWithRejection m w stepMLCG
-    where
-      m = fromInteger $ natVal (Proxy :: Proxy m)
+    where m = fromInteger $ natVal (Proxy :: Proxy m)
   step64R w     = PRNG.uniformWithRejection m w stepMLCG
-    where
-      m = fromInteger $ natVal (Proxy :: Proxy m)
+    where m = fromInteger $ natVal (Proxy :: Proxy m)
   stepFloat01   = do
     w <- PRNG.step32
     return $! PRNG.wordToFloat w
