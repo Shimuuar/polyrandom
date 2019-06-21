@@ -6,7 +6,9 @@
 {-# LANGUAGE UnboxedTuples       #-}
 -- |
 -- Linear congruential generators
-module Random.Gen.LCG where
+module Random.Gen.LCG (
+  MLCG(..)
+  ) where
 
 import Data.Proxy
 import Data.Word
@@ -42,50 +44,54 @@ stepMLCG = PRNG.Rand $ \(MLCG w) ->
 
 
 instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCG Word32 a m) where
-  step32        = PRNG.step32R maxBound
-  step64        = PRNG.step64R maxBound
   step32R w     = PRNG.uniformWithRejection m w stepMLCG
     where m = fromInteger $ natVal (Proxy :: Proxy m)
   step64R w     = PRNG.uniformWithRejection m w stepMLCG
     where m = fromInteger $ natVal (Proxy :: Proxy m)
-  stepFloat01   = do
-    w <- PRNG.step32
-    return $! PRNG.wordToFloat w
-  stepFloat01Z  = do
-    w <- PRNG.step32
-    return $! PRNG.wordToFloatZ w
-  stepDouble01  = do
-    w1 <- PRNG.step32
-    w2 <- PRNG.step32
-    return $! PRNG.wordsToDouble w1 w2
-  stepDouble01Z = do
-    w1 <- PRNG.step32
-    w2 <- PRNG.step32
-    return $! PRNG.wordsToDoubleZ w1 w2
+  -- Derived
+  step32        = PRNG.step32R maxBound
+  step64        = PRNG.step64R maxBound
+  stepFloat01   = withWord32  PRNG.wordToFloat
+  stepFloat01Z  = withWord32  PRNG.wordToFloatZ
+  stepDouble01  = with2Word32 PRNG.wordsToDouble
+  stepDouble01Z = with2Word32 PRNG.wordsToDoubleZ
+  -- State
   save    = undefined
   restore = undefined
 
 instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCG Word64 a m) where
-  step32        = PRNG.step32R maxBound
-  step64        = PRNG.step64R maxBound
   step32R w     = do
     x <- PRNG.step64R (fromIntegral w)
     return $! fromIntegral x
   step64R w     = PRNG.uniformWithRejection m w stepMLCG
     where
       m = fromInteger $ natVal (Proxy :: Proxy m)
-  stepFloat01   = do
-    w <- PRNG.step32
-    return $! PRNG.wordToFloat w
-  stepFloat01Z  = do
-    w <- PRNG.step32
-    return $! PRNG.wordToFloatZ w
-  stepDouble01  = do
-    w <- PRNG.step64
-    return $! PRNG.word64ToDouble w
-  stepDouble01Z = do
-    w <- PRNG.step64
-    return $! PRNG.word64ToDoubleZ w
+  -- Derived
+  step32        = PRNG.step32R maxBound
+  step64        = PRNG.step64R maxBound
+  stepFloat01   = withWord32 PRNG.wordToFloat
+  stepFloat01Z  = withWord32 PRNG.wordToFloatZ
+  stepDouble01  = withWord64 PRNG.word64ToDouble
+  stepDouble01Z = withWord64 PRNG.word64ToDoubleZ
+  -- State
   save    = undefined
   restore = undefined
   
+withWord32 :: PRNG.Pure g => (Word32 -> a) -> PRNG.Rand g a
+{-# INLINE withWord32 #-}
+withWord32 f = do
+  w <- PRNG.step32
+  return $! f w
+
+with2Word32 :: PRNG.Pure g => (Word32 -> Word32 -> a) -> PRNG.Rand g a
+{-# INLINE with2Word32 #-}
+with2Word32 f = do
+  u <- PRNG.step32
+  v <- PRNG.step32
+  return $! f u v
+
+withWord64 :: PRNG.Pure g => (Word64 -> a) -> PRNG.Rand g a
+{-# INLINE withWord64 #-}
+withWord64 f = do
+  w <- PRNG.step64
+  return $! f w
