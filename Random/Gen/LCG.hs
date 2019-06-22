@@ -5,13 +5,24 @@
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE UnboxedTuples       #-}
 -- |
--- Linear congruential generators
+-- Linear congruential generators (LCG). They're defined as recurrence relation:
+--
+-- \[
+-- x_{n+1} = ax_n + c \quad\operatorname{mod}\quad m
+-- \]
+--
+-- If constant @c@ is 0 such generator is called multiplicative linear
+-- congruential generator.
 module Random.Gen.LCG (
-  MLCG(..)
+    -- * Reference implementations
+    MLCGRef(..)
+    -- * References
+    -- $references
   ) where
 
 import Data.Proxy
 import Data.Word
+import Numeric.Natural
 import GHC.TypeLits
 
 import qualified Random.PRNG as PRNG
@@ -20,50 +31,34 @@ import qualified Random.PRNG as PRNG
 --
 ----------------------------------------------------------------
 
-
--- FIXME: We need to constrain possible values of a and m and their
---        relation to word width
-
--- | Multiplicative linear congruential generator
-newtype MLCG w (a :: Nat) (m :: Nat) = MLCG w
+-- | Reference implementation of multiplicative linear congruential
+--   generator. It uses arbitrary precision arithmetic and shouldn't
+--   have stellar performance. But its implementation is very
+--   straightforward and should be free of any problems brought by
+--   fancy tricks.
+newtype MLCGRef (a :: Nat) (m :: Nat) = MLCGRef Natural
   deriving (Show,Eq)
 
 -- | Perform single step of
-stepMLCG
-  :: forall w w' a m. ( Integral w, Integral w'
-                      , KnownNat a, KnownNat m
-                      )
-  => PRNG.Rand (MLCG w a m) w'
-{-# INLINE stepMLCG #-}
-stepMLCG = PRNG.Rand $ \(MLCG w) ->
-  let w' = w * a `mod` m
-  in  (# MLCG w', fromIntegral w' #)
+stepMLCGRef
+  :: forall a m. (KnownNat a, KnownNat m)
+  => PRNG.Rand (MLCGRef a m) Natural
+{-# INLINE stepMLCGRef #-}
+stepMLCGRef = PRNG.Rand $ \(MLCGRef w) ->
+  let w' = (w * a) `mod` m
+  in  (# MLCGRef w', w' #)
   where
     a  = fromInteger $ natVal (Proxy :: Proxy a)
     m  = fromInteger $ natVal (Proxy :: Proxy m)
 
 
-instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCG Word32 a m) where
-  step32R w     = PRNG.uniformWithRejection m w stepMLCG
-    where m = fromInteger $ natVal (Proxy :: Proxy m)
-  step64R w     = PRNG.uniformWithRejection m w stepMLCG
-    where m = fromInteger $ natVal (Proxy :: Proxy m)
-  -- Derived
-  step32        = PRNG.step32R maxBound
-  step64        = PRNG.step64R maxBound
-  stepFloat01   = withWord32  PRNG.wordToFloat
-  stepFloat01Z  = withWord32  PRNG.wordToFloatZ
-  stepDouble01  = with2Word32 PRNG.wordsToDouble
-  stepDouble01Z = with2Word32 PRNG.wordsToDoubleZ
-  -- State
-  save    = undefined
-  restore = undefined
-
-instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCG Word64 a m) where
+instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCGRef a m) where
   step32R w     = do
     x <- PRNG.step64R (fromIntegral w)
     return $! fromIntegral x
-  step64R w     = PRNG.uniformWithRejection m w stepMLCG
+  step64R w     = do
+    x <- PRNG.uniformWithRejection m (fromIntegral w) stepMLCGRef
+    return $! fromIntegral x
     where
       m = fromInteger $ natVal (Proxy :: Proxy m)
   -- Derived
@@ -95,3 +90,10 @@ withWord64 :: PRNG.Pure g => (Word64 -> a) -> PRNG.Rand g a
 withWord64 f = do
   w <- PRNG.step64
   return $! f w
+
+
+-- $references
+--
+-- * Schrage, L. (1979). A more portable Fortran random number
+--   generator.
+--   /ACM Transactions on Mathematical Software (TOMS),/ 5(2), 132-138.
