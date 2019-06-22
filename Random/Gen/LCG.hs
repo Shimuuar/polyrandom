@@ -33,7 +33,7 @@ import GHC.TypeLits
 import qualified Random.PRNG as PRNG
 
 ----------------------------------------------------------------
--- Reference implementation
+-- MLCG: m = 2^31 - 1
 ----------------------------------------------------------------
 
 -- | MLCG specialized for \[ m = 2^{31}-1 \]. This allows for
