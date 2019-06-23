@@ -32,6 +32,7 @@ import GHC.TypeLits
 
 import qualified Random.PRNG as PRNG
 
+
 ----------------------------------------------------------------
 -- MLCG: m = 2^31 - 1
 ----------------------------------------------------------------
@@ -46,8 +47,7 @@ type MLCG231 = MLCG231G 1583458089
 stepMLCG231 :: forall a i. (KnownNat a, Integral i) => PRNG.Rand (MLCG231G a) i
 {-# INLINE stepMLCG231 #-}
 stepMLCG231 = PRNG.Rand $ \(MLCG231 w) ->
-  let m31  = 0x7fffffff -- 2^31 - 1
-      a    = fromIntegral $ natVal (Proxy :: Proxy a)
+  let a    = fromIntegral $ natVal (Proxy :: Proxy a)
       prod = fromIntegral w * a :: Word64
       w'   = case (prod  .&. m31) + (prod `shiftR` 31) of
                r | r >= m31  -> r - m31
@@ -118,6 +118,13 @@ instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCGRef a m) where
 ----------------------------------------------------------------
 -- Helpers
 ----------------------------------------------------------------
+
+-- Mersenne primes
+m31,m61 :: Num a => a
+m31 = 0x7fffffff
+m61 = 0x1fffffffffffffff
+{-# INLINE m31 #-}
+{-# INLINE m61 #-}
 
 withWord32 :: PRNG.Pure g => (Word32 -> a) -> PRNG.Rand g a
 {-# INLINE withWord32 #-}
