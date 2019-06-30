@@ -140,13 +140,13 @@ word64ToDoubleZ w
 
 
 wordToFloat :: Word32 -> Float
-wordToFloat x = (fromIntegral i * f_inv_32) + 0.5 + f_inv_33
-  where
-    i = fromIntegral x :: Int32
+wordToFloat x = wordToFloatZ x + f_inv_33
 {-# INLINE wordToFloat #-}
 
 wordToFloatZ :: Word32 -> Float
-wordToFloatZ x = wordToFloat x - f_inv_33
+wordToFloatZ x = (fromIntegral i * f_inv_32) + 0.5
+  where
+    i = fromIntegral x :: Int32
 {-# INLINE wordToFloatZ #-}
 
 d_inv_52, d_inv_53, d_inv_32 :: Double
