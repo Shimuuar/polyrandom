@@ -18,6 +18,7 @@ module Random.PRNG (
   , Seed(..)
     -- ** Two APIs
   , Rand(..)
+  , MRand(..)
   , Pure(..)
   , Stateful(..)
     -- * Primitive combinators
@@ -33,6 +34,7 @@ module Random.PRNG (
   ) where
 
 import Control.Monad.Primitive
+import Control.Monad.ST
 import Data.Bits
 import Data.Int
 import Data.ByteString (ByteString)
@@ -67,6 +69,18 @@ instance Monad (Rand g) where
   return  = pure
   m >>= f = Rand $ \g -> let (# g', a #) = unRand m g
                          in  unRand (f a) g'
+
+newtype MRand g s a = MRand { unMRandT :: Ref g s -> ST s a }
+  deriving (Functor)
+
+instance Applicative (MRand g s) where
+  pure a = MRand $ \_ -> pure a
+  MRand f <*> MRand x = MRand $ \g -> f g <*> x g
+
+instance Monad (MRand g s) where
+  return = pure
+  MRand m >>= f = MRand $ \g -> m g >>= \a -> unMRandT (f a) g
+
 
 
 -- | PRNG with state as pure value. Such PRNGs are meant to be used in
