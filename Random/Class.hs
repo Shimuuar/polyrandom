@@ -37,6 +37,9 @@ class Monad m => MonadRandom m where
   -- | Save current state of generator as seed
   saveSeed         :: m (PRNG.Seed (PRNG m))
 
+class MonadRandom m => MonadRandomPure m where
+  liftRand :: PRNG.Rand (PRNG m) a -> m a
+
 
 ----------------------------------------------------------------
 -- Concrete implementations for pure PRNG
@@ -52,18 +55,15 @@ instance PRNG.Pure g => MonadRandom (PRNG.Rand g) where
   restoreSeed seed = PRNG.Rand $ \_ -> (# PRNG.restore seed, () #)
   saveSeed         = PRNG.Rand $ \g -> (# g , PRNG.save g #)
 
+instance PRNG.Pure g => MonadRandomPure (PRNG.Rand g) where
+  liftRand = id
+
+
+
 
 newtype RandT g m a = RandT
   { unRandT :: StateT g m a }
   deriving (Functor, Applicative, Monad)
-
-liftRand :: Monad m => PRNG.Rand g a -> RandT g m a
-{-# INLINE liftRand #-}
-liftRand rnd = RandT $ do
-  g <- get
-  let (# g', a #) = PRNG.unRand rnd g
-  put g'
-  return a
 
 instance (PRNG.Pure g, Monad m) => MonadRandom (RandT g m) where
   type PRNG (RandT g m) = g
@@ -76,7 +76,14 @@ instance (PRNG.Pure g, Monad m) => MonadRandom (RandT g m) where
     g <- get
     return $! PRNG.save g
 
+instance (PRNG.Pure g, Monad m) => MonadRandomPure (RandT g m) where
+  liftRand rnd = RandT $ do
+    g <- get
+    let (# g', a #) = PRNG.unRand rnd g
+    put g'
+    return a
 
+  
 ----------------------------------------------------------------
 --
 ----------------------------------------------------------------
