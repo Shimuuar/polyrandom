@@ -22,12 +22,10 @@ module Random.PRNG (
   , Stateful(..)
     -- * Primitive combinators
     -- ** Floating point
-  , wordsToDouble
-  , wordsToDoubleZ
-  , word64ToDouble
-  , word64ToDoubleZ
   , wordToFloat
   , wordToFloatZ
+  , wordToDouble
+  , wordToDoubleZ
     -- ** Integral ranges
   , uniformWithRejection
     -- * References
@@ -118,27 +116,6 @@ class Stateful g where
 -- Primitive combinators
 ----------------------------------------------------------------
 
-wordsToDouble :: Word32 -> Word32 -> Double
-wordsToDouble u v = (fromIntegral u * d_inv_32 + (0.5 + d_inv_53)
-                 + fromIntegral (v .&. 0xFFFFF) * d_inv_52)
-{-# INLINE wordsToDouble #-}
-
-wordsToDoubleZ :: Word32 -> Word32 -> Double
-wordsToDoubleZ u v = wordsToDouble u v - d_inv_53
-{-# INLINE wordsToDoubleZ #-}
-
-
-word64ToDouble :: Word64 -> Double
-word64ToDouble w
-  = wordsToDouble (fromIntegral w) (fromIntegral (w `shiftR` 32))
-{-# INLINE word64ToDouble #-}
-
-word64ToDoubleZ :: Word64 -> Double
-word64ToDoubleZ w
-  = wordsToDoubleZ (fromIntegral w) (fromIntegral (w `shiftR` 32))
-{-# INLINE word64ToDoubleZ #-}
-
-
 wordToFloat :: Word32 -> Float
 wordToFloat x = wordToFloatZ x + f_inv_33
 {-# INLINE wordToFloat #-}
@@ -149,14 +126,24 @@ wordToFloatZ x = (fromIntegral i * f_inv_32) + 0.5
     i = fromIntegral x :: Int32
 {-# INLINE wordToFloatZ #-}
 
-d_inv_52, d_inv_53, d_inv_32 :: Double
-d_inv_52 = 2.220446049250313080847263336181640625e-16  -- 2^{-52}
-d_inv_53 = 1.1102230246251565404236316680908203125e-16 -- 2^{-53}
-d_inv_32 = 2.3283064365386962890625e-10                -- 2^{-32}
+wordToDouble :: Word64 -> Double
+wordToDouble x = wordToDoubleZ x + d_inv_65
+{-# INLINE wordToDouble #-}
 
-f_inv_33, f_inv_32 :: Float
-f_inv_33 = 1.16415321826934814453125e-10
-f_inv_32 = 2.3283064365386962890625e-10
+wordToDoubleZ :: Word64 -> Double
+wordToDoubleZ x = (fromIntegral i * d_inv_64) + 0.5
+  where
+    i = fromIntegral x :: Int64
+{-# INLINE wordToDoubleZ #-}
+
+
+d_inv_64, d_inv_65 :: Double
+d_inv_64 = 5.421010862427522e-20 -- 2^{-64}
+d_inv_65 = 2.710505431213761e-20 -- 2^{-65}
+
+f_inv_32, f_inv_33 :: Float
+f_inv_32 = 2.3283064365386962890625e-10   -- 2^{-32}
+f_inv_33 = 1.16415321826934814453125e-10  -- 2^{-33}
 
 
 ----------------------------------------------------------------
