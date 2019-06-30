@@ -192,13 +192,13 @@ instance UniformR Int where
 -- Uniform01
 ----------------------------------------------------------------
 
-instance Uniform01 Float where
-  uniform01  = uniformFloat01
-  uniform01Z = uniformFloat01Z
+-- instance Uniform01 Float where
+--   uniform01  = uniformFloat01
+--   uniform01Z = uniformFloat01Z
 
-instance Uniform01 Double where
-  uniform01  = uniformDouble01
-  uniform01Z = uniformDouble01Z
+-- instance Uniform01 Double where
+--   uniform01  = uniformDouble01
+--   uniform01Z = uniformDouble01Z
 
 
 -- $references

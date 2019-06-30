@@ -78,18 +78,12 @@ class Pure g where
   step32  :: Rand g Word32
   -- | Generate single uniformly distributed 64-bit word
   step64  :: Rand g Word64
+  -- | Generate two 32-bit numbers
+  stepTwo32 :: (Word32 -> Word32 -> Rand g a) -> Rand g a
   -- | @step32R g n@ generates number in range @[0,n]@
   step32R :: Word32 -> Rand g Word32
   -- | @step64R g n@ generates number in range @[0,n]@
   step64R :: Word64 -> Rand g Word64
-  -- | Generate @Float@ in the range (0,1]
-  stepFloat01  :: Rand g Float
-  -- | Generate @Float@ in the range [0,1)
-  stepFloat01Z :: Rand g Float
-  -- | Generate @Double@ in the range (0,1]
-  stepDouble01  :: Rand g Double
-  -- | Generate @Double@ in the range [0,1)
-  stepDouble01Z :: Rand g Double
   -- | Save state of PRNG as bytestring.
   save    :: g -> Seed g
   -- | Restore state from seed. Seed of any length should be
@@ -107,18 +101,12 @@ class Stateful g where
   stepSt32        :: PrimMonad m => Ref g (PrimState m) -> m Word32
   -- | Generate uniformly distributed 64-bit word
   stepSt64        :: PrimMonad m => Ref g (PrimState m) -> m Word64
+  -- | Generate two uniformly distributed 32 words and consume them
+  stepStTwo32     :: PrimMonad m => Ref g (PrimState m) -> (Word32 -> Word32 -> m a) -> m a
   -- | @step32R g n@ generates number in range @[0,n]@
   stepSt32R       :: PrimMonad m => Ref g (PrimState m) -> Word32 -> m Word32
   -- | @step32R g n@ generates number in range @[0,n]@
   stepSt64R       :: PrimMonad m => Ref g (PrimState m) -> Word64 -> m Word64
-  -- | Generate @Float@ in the range (0,1]
-  stepStFloat01   :: PrimMonad m => Ref g (PrimState m) -> m Float
-  -- | Generate @Float@ in the range [0.1)
-  stepStFloat01Z  :: PrimMonad m => Ref g (PrimState m) -> m Float
-  -- | Generate @Double@ in the range (0.1]
-  stepStDouble01  :: PrimMonad m => Ref g (PrimState m) -> m Double
-  -- | Generate @Double@ in the range [0.1)
-  stepStDouble01Z :: PrimMonad m => Ref g (PrimState m) -> m Double
   -- | Save state of PRNG in bytestring
   saveSt          :: PrimMonad m => Ref g (PrimState m) -> m (Seed g)
   -- | Restore state of PRNG
@@ -190,6 +178,7 @@ uniformWithRejection genRange range generator
   -- nGen == 0 if we need to generate full range of word.
   | nGen > genRange || nGen == 0 = upscaledRej
   | nGen < genRange              = simpleRej
+
   | otherwise                    = generator
   where
     -- Number of values we want to generate. Will overflow if range is maxBound

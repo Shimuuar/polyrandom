@@ -28,18 +28,12 @@ class Monad m => MonadRandom m where
   uniformWord32    :: m Word32
   -- | Generate uniformly distributed 64-bit word
   uniformWord64    :: m Word64
+  -- |
+  uniform2Word32   :: (Word32 -> Word32 -> m a) -> m a
   -- | Generate uniformly distributed 32-bit word in range [0,n]
   uniformRWord32   :: Word32 -> m Word32
   -- | Generate uniformly distributed 32-bit word in range [0,n]
   uniformRWord64   :: Word64 -> m Word64
-  -- | Generate @Float@ in the range (0,1]
-  uniformFloat01   :: m Float
-  -- | Generate @Float@ in the range [0,1)
-  uniformFloat01Z  :: m Float
-  -- | Generate @Double@ in the range (0.1]
-  uniformDouble01  :: m Double
-  -- | Generate @Double@ in the range [0.1)
-  uniformDouble01Z :: m Double
   -- | Reset generator state to value provided in the seed
   restoreSeed      :: PRNG.Seed (PRNG m) -> m ()
   -- | Save current state of generator as seed
@@ -54,12 +48,10 @@ instance PRNG.Pure g => MonadRandom (PRNG.Rand g) where
   type PRNG (PRNG.Rand g) = g
   uniformWord32    = PRNG.step32
   uniformWord64    = PRNG.step64
+  uniform2Word32   = PRNG.stepTwo32
   uniformRWord32   = PRNG.step32R
   uniformRWord64   = PRNG.step64R
-  uniformFloat01   = PRNG.stepFloat01
-  uniformFloat01Z  = PRNG.stepFloat01Z
-  uniformDouble01  = PRNG.stepDouble01
-  uniformDouble01Z = PRNG.stepDouble01Z
+  
   restoreSeed seed = PRNG.Rand $ \_ -> (# PRNG.restore seed, () #)
   saveSeed         = PRNG.Rand $ \g -> (# g , PRNG.save g #)
 
@@ -82,10 +74,6 @@ instance (PRNG.Pure g, Monad m) => MonadRandom (RandT g m) where
   uniformWord64    = liftRand uniformWord64
   uniformRWord32   = liftRand . uniformRWord32
   uniformRWord64   = liftRand . uniformRWord64
-  uniformFloat01   = liftRand uniformFloat01
-  uniformFloat01Z  = liftRand uniformFloat01Z
-  uniformDouble01  = liftRand uniformDouble01
-  uniformDouble01Z = liftRand uniformDouble01Z
   restoreSeed = RandT . put . PRNG.restore
   saveSeed    = RandT $ do
     g <- get
@@ -107,9 +95,5 @@ instance (PRNG.Stateful g, PrimMonad m) => MonadRandom (MRandT g m) where
   uniformWord64        = MRandT $ ReaderT $ PRNG.stepSt64
   uniformRWord32 n     = MRandT $ ReaderT $ \g -> PRNG.stepSt32R g n
   uniformRWord64 n     = MRandT $ ReaderT $ \g -> PRNG.stepSt64R g n
-  uniformFloat01       = MRandT $ ReaderT $ PRNG.stepStFloat01
-  uniformFloat01Z      = MRandT $ ReaderT $ PRNG.stepStFloat01Z
-  uniformDouble01      = MRandT $ ReaderT $ PRNG.stepStDouble01
-  uniformDouble01Z     = MRandT $ ReaderT $ PRNG.stepStDouble01Z
   restoreSeed     seed = MRandT $ ReaderT $ \g -> PRNG.restoreSt g seed
   saveSeed             = MRandT $ ReaderT $ PRNG.saveSt
