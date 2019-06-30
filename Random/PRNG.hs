@@ -108,17 +108,19 @@ class Stateful g where
   -- | Reference to mutable state of generator
   data Ref g :: * -> *
   -- | Generate uniformly distributed 32-bit word
-  stepSt32        :: PrimMonad m => Ref g (PrimState m) -> m Word32
+  stepSt32        :: MRand g s Word32
   -- | Generate uniformly distributed 64-bit word
-  stepSt64        :: PrimMonad m => Ref g (PrimState m) -> m Word64
+  stepSt64        :: MRand g s Word64
   -- | @step32R g n@ generates number in range @[0,n]@
-  stepSt32R       :: PrimMonad m => Ref g (PrimState m) -> Word32 -> m Word32
+  stepSt32R       :: Word32 -> MRand g s Word32
   -- | @step32R g n@ generates number in range @[0,n]@
-  stepSt64R       :: PrimMonad m => Ref g (PrimState m) -> Word64 -> m Word64
+  stepSt64R       :: Word64 -> MRand g s Word64
   -- | Save state of PRNG in bytestring
-  saveSt          :: PrimMonad m => Ref g (PrimState m) -> m (Seed g)
+  saveSt          :: MRand g s (Seed g)
+  -- | Create new generator
+  createSt        :: Seed g -> ST s (Ref g s)
   -- | Restore state of PRNG
-  restoreSt       :: PrimMonad m => Ref g (PrimState m) -> Seed g -> m ()
+  restoreSt       :: Seed g -> MRand g s ()
 
 
 

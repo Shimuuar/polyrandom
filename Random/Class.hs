@@ -1,9 +1,12 @@
 {-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE PolyKinds                  #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UnboxedTuples              #-}
+{-# LANGUAGE UndecidableInstances       #-}
 -- |
 module Random.Class where
 
@@ -39,6 +42,10 @@ class Monad m => MonadRandom m where
 
 class MonadRandom m => MonadRandomPure m where
   liftRand :: PRNG.Rand (PRNG m) a -> m a
+
+class (PrimMonad m, MonadRandom m) => MonadRandomSt m where
+  liftMRand :: PRNG.MRand (PRNG m) (PrimState m) a -> m a
+
 
 
 ----------------------------------------------------------------
@@ -90,14 +97,17 @@ instance (PRNG.Pure g, Monad m) => MonadRandomPure (RandT g m) where
 
 newtype MRandT g m a = MRandT
   { unMRandT :: ReaderT (PRNG.Ref g (PrimState m)) m a }
-  deriving (Functor, Applicative, Monad)
+  deriving (Functor, Applicative, Monad, PrimMonad)
 
 instance (PRNG.Stateful g, PrimMonad m) => MonadRandom (MRandT g m) where
   type PRNG (MRandT g m) = g
   --
-  uniformWord32        = MRandT $ ReaderT $ PRNG.stepSt32
-  uniformWord64        = MRandT $ ReaderT $ PRNG.stepSt64
-  uniformRWord32 n     = MRandT $ ReaderT $ \g -> PRNG.stepSt32R g n
-  uniformRWord64 n     = MRandT $ ReaderT $ \g -> PRNG.stepSt64R g n
-  restoreSeed     seed = MRandT $ ReaderT $ \g -> PRNG.restoreSt g seed
-  saveSeed             = MRandT $ ReaderT $ PRNG.saveSt
+  uniformWord32  = liftMRand   PRNG.stepSt32
+  uniformWord64  = liftMRand   PRNG.stepSt64
+  uniformRWord32 = liftMRand . PRNG.stepSt32R
+  uniformRWord64 = liftMRand . PRNG.stepSt64R
+  restoreSeed    = liftMRand . PRNG.restoreSt
+  saveSeed       = liftMRand   PRNG.saveSt
+
+instance (PRNG.Stateful g, PrimMonad m) => MonadRandomSt (MRandT g m) where
+  liftMRand (PRNG.MRand fun) = MRandT $ ReaderT $ \g -> stToPrim (fun g)
