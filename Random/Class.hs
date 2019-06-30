@@ -28,8 +28,6 @@ class Monad m => MonadRandom m where
   uniformWord32    :: m Word32
   -- | Generate uniformly distributed 64-bit word
   uniformWord64    :: m Word64
-  -- |
-  uniform2Word32   :: (Word32 -> Word32 -> m a) -> m a
   -- | Generate uniformly distributed 32-bit word in range [0,n]
   uniformRWord32   :: Word32 -> m Word32
   -- | Generate uniformly distributed 32-bit word in range [0,n]
@@ -48,10 +46,9 @@ instance PRNG.Pure g => MonadRandom (PRNG.Rand g) where
   type PRNG (PRNG.Rand g) = g
   uniformWord32    = PRNG.step32
   uniformWord64    = PRNG.step64
-  uniform2Word32   = PRNG.stepTwo32
   uniformRWord32   = PRNG.step32R
   uniformRWord64   = PRNG.step64R
-  
+  --
   restoreSeed seed = PRNG.Rand $ \_ -> (# PRNG.restore seed, () #)
   saveSeed         = PRNG.Rand $ \g -> (# g , PRNG.save g #)
 

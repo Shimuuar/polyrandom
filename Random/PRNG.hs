@@ -76,8 +76,6 @@ class Pure g where
   step32  :: Rand g Word32
   -- | Generate single uniformly distributed 64-bit word
   step64  :: Rand g Word64
-  -- | Generate two 32-bit numbers
-  stepTwo32 :: (Word32 -> Word32 -> Rand g a) -> Rand g a
   -- | @step32R g n@ generates number in range @[0,n]@
   step32R :: Word32 -> Rand g Word32
   -- | @step64R g n@ generates number in range @[0,n]@
@@ -99,8 +97,6 @@ class Stateful g where
   stepSt32        :: PrimMonad m => Ref g (PrimState m) -> m Word32
   -- | Generate uniformly distributed 64-bit word
   stepSt64        :: PrimMonad m => Ref g (PrimState m) -> m Word64
-  -- | Generate two uniformly distributed 32 words and consume them
-  stepStTwo32     :: PrimMonad m => Ref g (PrimState m) -> (Word32 -> Word32 -> m a) -> m a
   -- | @step32R g n@ generates number in range @[0,n]@
   stepSt32R       :: PrimMonad m => Ref g (PrimState m) -> Word32 -> m Word32
   -- | @step32R g n@ generates number in range @[0,n]@

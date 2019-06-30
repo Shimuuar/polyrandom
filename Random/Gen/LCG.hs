@@ -60,8 +60,6 @@ instance (1 <= a, a <= 2147483646, KnownNat a) => PRNG.Pure (MLCG231G a) where
   -- Derived
   step32        = PRNG.step32R maxBound
   step64        = PRNG.step64R maxBound
-  stepTwo32 f   = do w <- PRNG.step64 ;
-                     f (fromIntegral w) (fromIntegral $ w `shiftR` 32) 
   -- State
   save    = undefined
   restore = undefined
@@ -104,8 +102,6 @@ instance (KnownNat a, KnownNat m) => PRNG.Pure (MLCGRef a m) where
   -- Derived
   step32        = PRNG.step32R maxBound
   step64        = PRNG.step64R maxBound
-  stepTwo32 f   = do w <- PRNG.step64 ;
-                     f (fromIntegral w) (fromIntegral $ w `shiftR` 32) 
   -- State
   save    = undefined
   restore = undefined
